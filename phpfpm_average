@@ -36,7 +36,8 @@ Copyright TJ Stein 2010 http://constantshift.com
 
 
 PHP_BIN=${phpbin-"php-fpm"}
-PHP_POOL=${phppool-"www"}
+# Get the list of all pools if non is specified in the config file
+PHP_POOLS=${phppool-"$(ps -axo cmd | grep "php-fpm: pool" | grep -v grep | sort | uniq | cut -d" " -f 3)"}
 
 if [ "$1" = "autoconf" ]; then
 echo yes
@@ -52,11 +53,19 @@ echo 'graph_info This graph shows the average process size for PHP-FPM'
 echo 'php_average.label PHP-FPM Average Proccess Size'
 echo 'php_average.draw LINE2'
 echo 'php_average.info The average process size for PHP-FPM'
+for p in $PHP_POOLS; do
+    echo "graph_vlabel PHP-FPM Average Process Size $p"
+    echo "php_average_$p.label PHP-FPM Average Process Size: $p"
+    echo "php_average_$p.draw LINE2"
+    echo "php_average_$p.info The average process size for PHP-FPM for pool '$p'."
+done
 exit 0
 fi
 
-echo -n "php_average.value "
-tmpfile=/dev/shm/$$
-ps awwwux | grep "${PHP_BIN}: pool $PHP_POOL" | grep -v grep | grep -v master > $tmpfile
-test -s $tmpfile && awk '{total_mem = $6 * 1024 + total_mem; total_proc++} END{printf("%d\n", total_mem / total_proc)}' $tmpfile || echo N
-rm -f $tmpfile
+for p in $PHP_POOLS; do
+    echo -n "php_average_$p.value "
+    tmpfile=/dev/shm/$$
+    ps awwwux | grep "${PHP_BIN}: pool $p" | grep -v grep | grep -v master > $tmpfile
+    test -s $tmpfile && awk '{total_mem = $6 * 1024 + total_mem; total_proc++} END{printf("%d\n", total_mem / total_proc)}' $tmpfile || echo N
+    rm -f $tmpfile
+done
