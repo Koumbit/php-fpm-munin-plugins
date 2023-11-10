@@ -47,12 +47,8 @@ fi
 if [ "$1" = "config" ]; then
 echo 'graph_title PHP-FPM Average Process Size'
 echo 'graph_args --base 1024 -l 0 '
-echo 'graph_vlabel PHP-FPM Average Process Size'
 echo 'graph_category PHP'
 echo 'graph_info This graph shows the average process size for PHP-FPM'
-echo 'php_average.label PHP-FPM Average Proccess Size'
-echo 'php_average.draw LINE2'
-echo 'php_average.info The average process size for PHP-FPM'
 for p in $PHP_POOLS; do
     echo "graph_vlabel PHP-FPM Average Process Size $p"
     echo "php_average_$p.label PHP-FPM Average Process Size: $p"
