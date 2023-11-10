@@ -1,7 +1,7 @@
-#!/usr/bin/perl
-# -*- perl -*-
+#!/bin/sh
+# -*- sh -*-
 
-=encoding utf8
+: <<=cut
 
 =head1 NAME
 
@@ -34,28 +34,34 @@ Copyright TJ Stein 2010 http://constantshift.com
 
 =cut
 
+PHP_BIN=${phpbin-"php-fpm"}
+# Get the list of all pools if non is specified in the config file
+PHP_POOLS=${phppool-"$(ps -axo cmd | grep "php-fpm: pool" | grep -v grep | sort | uniq | cut -d" " -f 3)"}
 
-my $PHP_BIN = exists $ENV{'phpbin'} ? $ENV{'phpbin'} : "php-fpm";
-my $PHP_POOL = exists $ENV{'phppool'} ? $ENV{'phppool'} : "www";
+if [ "$1" = "autoconf" ]; then
+    echo yes
+    exit 0
+fi
 
-if ( defined $ARGV[0] and $ARGV[0] eq "autoconf" )
-{
-        print "yes\n";
-        exit 0;
-}
+if [ "$1" = "config" ]; then
+    echo 'graph_title PHP-FPM Memory Usage'
+    echo 'graph_args --base 1024 -l 0 '
+    echo 'graph_category PHP'
+    echo 'graph_info This graph shows the memory usage of PHP-FPM pools in the system.'
+    for p in $PHP_POOLS; do
+	echo "graph_vlabel PHP-FPM RAM $p"
+	echo "php_ram_$p.label PHP-FPM ram: $p"
+	echo "php_ram_$p.draw LINE2"
+	echo "php_ram_$p.info The current Memory Usage of PHP-FPM for pool '$p'."
+    done
+    exit 0
+fi
 
-if ( exists $ARGV[0] and $ARGV[0] eq "config" ) {
-        print "graph_title PHP-FPM Memory Usage\n";
-        print "graph_vlabel RAM\n";
-        print "graph_category PHP\n";
-        print "ram.label ram\n";
-                print "graph_args --base 1024\n";
-} else {
-        my $i = Integer;
-        @cmd = `ps auwx | grep "$PHP_BIN: pool $PHP_POOL" | grep -v grep | grep -v phpfpm_memory`;
-        foreach (@cmd) {
-                @return = split(/ +/, $_);
-                $i += @return[5]*1024;
-        }
-        print "ram.value ".$i."\n";
-}
+for p in $PHP_POOLS; do
+    echo -n "php_ram_$p.value "
+    t=0
+    for i in $(ps awx -o rss,cmd | grep "php-fpm: pool $p" | grep -v grep | grep -v phpfpm_memory | cut -d" " -f1); do
+	t=$((t+i))
+    done
+    echo $((t*1024))
+done
