@@ -35,7 +35,8 @@ Copyright TJ Stein 2010 http://constantshift.com
 =cut
 
 PHP_BIN=${phpbin-"php-fpm"}
-PHP_POOL=${phppool-"www"}
+# Get the list of all pools if non is specified in the config file
+PHP_POOLS=${phppool-"$(ps -axo cmd | grep "php-fpm: pool" | grep -v grep | sort | uniq | cut -d" " -f 3)"}
 
 if [ "$1" = "autoconf" ]; then
 echo yes
@@ -45,14 +46,18 @@ fi
 if [ "$1" = "config" ]; then
 echo 'graph_title PHP-FPM Processes'
 echo 'graph_args --base 1000 -l 0 '
-echo 'graph_vlabel PHP-FPM Processes'
 echo 'graph_category PHP'
 echo 'graph_info This graph shows the number of PHP-FPM processes in the system.'
-echo 'php_processes.label PHP-FPM Processes'
-echo 'php_processes.draw LINE2'
-echo 'php_processes.info The current number of PHP-FPM processes.'
+for p in $PHP_POOLS; do
+    echo "graph_vlabel PHP-FPM Processes $p"
+    echo "php_processes_$p.label PHP-FPM Processes: $p"
+    echo "php_processes_$p.draw LINE2"
+    echo "php_processes_$p.info The current number of PHP-FPM processes for pool '$p'."
+done
 exit 0
 fi
 
-echo -n "php_processes.value "
-ps awwwux | grep "$PHP_BIN: pool $PHP_POOL" | grep -v grep | wc -l
+for p in $PHP_POOLS; do
+    echo -n "php_processes_$p.value "
+    ps awwwux | grep "$PHP_BIN: pool $p" | grep -v grep | wc -l
+done
